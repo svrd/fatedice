@@ -17,14 +17,16 @@ def generate_page(name):
         '''
     lines = ""
     line = ""
-    with open("rolls.txt", "r") as f:
-        while True:
-            line = f.readline()
-            print(line)
-            lines = line + "<br>" + lines
-            if line == "":
-                break
-
+    try:
+        with open("rolls.txt", "r+") as f:
+            while True:
+                line = f.readline()
+                print(line)
+                lines = line + "<br>" + lines
+                if line == "":
+                    break
+    except IOError:
+        print("No file")
     page = page + lines
     print(lines)
 
@@ -40,7 +42,7 @@ def cmd():
         name = ""
     else:
         result = random.randrange(1,20)
-        with open("rolls.txt", "a") as f:
+        with open("rolls.txt", "a+") as f:
             f.write(f"{name} slog 1T20, resultat: {result}\n")
 
     return generate_page(name)
