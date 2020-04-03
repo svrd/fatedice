@@ -1,16 +1,10 @@
 # app.py
 from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
-from config import Config
-from flask_sqlalchemy import SQLAlchemy
-from flask_migrate import Migrate
 import random
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
-app.config.from_object(Config)
-db = SQLAlchemy(app)
-migrate = Migrate(app, db)
 
 def generate_page(name):
     page = \
