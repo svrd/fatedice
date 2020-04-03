@@ -3,25 +3,37 @@ from flask import Flask, request, jsonify
 from flask_socketio import SocketIO
 from config import Config
 from flask_sqlalchemy import SQLAlchemy
-from flask import g
+from flask_migrate import Migrate
+import random
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 app.config.from_object(Config)
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
 
-def generate_page():
-    name = ""
-    if 'name' in g:
-        print(f"Setting name to {g.name}")
-        name = g.name
-    else:
-        print("name is not set")
-
+def generate_page(name):
     page = \
         f'''
-        <h1>Välkommen {name}<h1>
+        <h1>Ödestärningar</h1>
+        <form action="/cmd/" method="get">
+        <label for="name">Namn:</label><input type="text" id="name" name="name" value="{name}"><br><br>
+        <input type="submit" value="Submit">
+        </form>
         '''
+    lines = ""
+    line = ""
+    with open("rolls.txt", "r") as f:
+        while True:
+            line = f.readline()
+            print(line)
+            lines = line + "<br>" + lines
+            if line == "":
+                break
+
+    page = page + lines
+    print(lines)
+
     return page
 
 
@@ -32,14 +44,16 @@ def cmd():
 
     if not name:
         name = ""
+    else:
+        result = random.randrange(1,20)
+        with open("rolls.txt", "a") as f:
+            f.write(f"{name} slog 1T20, resultat: {result}\n")
 
-    g.name = name
-
-    return generate_page()
+    return generate_page(name)
 
 @app.route('/')
 def index():
-    return generate_page()
+    return generate_page("Anonym")
 
 if __name__ == '__main__':
     socketio = SocketIO(app)
