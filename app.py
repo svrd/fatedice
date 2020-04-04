@@ -105,8 +105,8 @@ def cmd():
             if random_event == "JA":
                 f.write(f"Slumpmässig händelse!\n")
             f.write(f"Svar: {answer}!\n")
-            f.write(f"Kaostärning: {kaos_roll}\n")
-            f.write(f"Resultat: {result1}+{result2}+{modifier}+{kaos_modifier} = {result}\n")
+            f.write(f"Kaosfaktor: {kaos_factor}, Kaostärning: {kaos_roll}\n")
+            f.write(f"Resultat: {result1} + {result2} + {modifier} + {kaos_modifier} = {result}\n")
             f.write(f"{name} frågade: {question}\n")
             f.write("\n")
         return redirect(url_for('index'))
