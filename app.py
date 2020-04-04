@@ -13,8 +13,8 @@ def generate_page(name, dice):
         <form action="/cmd/" method="get">
         <label for="name">Namn:</label><input type="text" id="name" name="name" value="{name}"><br>
         <label for="dice">Tärning:</label><input type="text" id="dice" name="dice" value="{dice}"><br>
-        <label for="question">Ödesfråga:</label><input type="text" id="question" name="question" value="">
-        <select id="modifier" name="modifier">
+        <label for="question">Ödesfråga:</label><input type="text" id="question" name="question" value=""><br>
+        <select id="modifier" name="modifier"><br>
             <option value="0" selected>Femti/femti eller vet ej (0)</option>
             <option value="8">Garanterat (+8)</option>
             <option value="6">Helt säkert (+6)</option>
@@ -35,7 +35,7 @@ def generate_page(name, dice):
             <option value="2">Kaos (+2)</option>
             <option value="0" selected>Kaos (0)</option>
             <option value="-2">Kaos (-2)</option>
-        </select>
+        </select><br>
         <input type="submit" value="Submit">
         </form>
         <button onClick="window.location.reload();">Ladda om sidan</button>
@@ -81,12 +81,12 @@ def cmd():
             and modifier.lstrip('-').isnumeric() \
             and kaos_factor.isnumeric() \
             and kaos_modifier.lstrip('-').isnumeric():
-        result1 = random.randrange(1,10)
-        result2 = random.randrange(1,10)
+        result1 = random.randint(1,10)
+        result2 = random.randint(1,10)
         modifier_number = int(modifier)
         kaos_factor_number = int(kaos_factor)
         kaos_modifier_number = int(kaos_modifier)
-        kaos_roll = random.randrange(1,10)
+        kaos_roll = random.randint(1,10)
         result = result1 + result2 + modifier_number + kaos_modifier_number
         answer = "NEJ"
         random_event = "NEJ"
@@ -112,7 +112,7 @@ def cmd():
         return redirect(url_for('index'))
     elif dice is not None and dice.isdigit():
         session['dice'] = dice
-        result = random.randrange(1,(int(dice)))
+        result = random.randint(1,(int(dice)))
         with open("rolls.txt", "a+") as f:
             f.write(f"{name} slog 1T{dice}, resultat: {result}\n")
         return redirect(url_for('index'))
