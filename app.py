@@ -16,6 +16,15 @@ def generate_page(name, dice, roll):
         <label for="dice">Tärning:</label><input type="text" id="dice" name="dice" value="{dice}">
         <input type="submit" name="dice_button" value="Tärning"><br>
 
+        <input type="submit" name="d100_button" value="1T100">
+        <input type="submit" name="d20_button" value="1T20">
+        <input type="submit" name="d12_button" value="1T12">
+        <input type="submit" name="d10_button" value="1T10">
+        <input type="submit" name="d8_button" value="1T8">
+        <input type="submit" name="d6_button" value="1T6">
+        <input type="submit" name="d4_button" value="1T4">
+        <input type="submit" name="d2_button" value="1T2"><br>
+
         <label for="roll">Slag:</label><input type="text" id="roll" name="roll" value="{roll}">
         <input type="submit" name="roll_button" value="Slag"><br>
 
@@ -81,6 +90,16 @@ def cmd():
     if name:
         session['name'] = name
     
+    roll_dice = False
+    if request.args.get('dice_button') is not None:
+        roll_dice = True
+
+    dice_list = ['100', '20', '12', '10', '8', '6', '4', '2']
+    for d in dice_list:
+        if request.args.get(f'd{d}_button') is not None:
+            roll_dice = True
+            dice = d
+
 
     if not name:
         name = session.get('name', 'Anonym')
@@ -122,7 +141,7 @@ def cmd():
         result = parse_roll(roll)
         with open("rolls.txt", "a+") as f:
             f.write(f"{name} slog {roll}, resultat: {result}\n")
-    elif request.args.get('dice_button') is not None and dice is not None and dice.isdigit():
+    elif roll_dice and dice is not None and dice.isdigit():
         session['dice'] = dice
         result = random.randint(1,(int(dice)))
         with open("rolls.txt", "a+") as f:
