@@ -1,4 +1,5 @@
 # app.py
+from rollparser import parse_roll
 from flask import Flask, request, redirect, url_for, session
 from flask_socketio import SocketIO
 import random
@@ -6,13 +7,14 @@ import random
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 
-def generate_page(name, dice):
+def generate_page(name, dice, roll):
     page = \
         f'''
         <h1>Ödestärningar</h1>
         <form action="/cmd/" method="get">
         <label for="name">Namn:</label><input type="text" id="name" name="name" value="{name}"><br>
         <label for="dice">Tärning:</label><input type="text" id="dice" name="dice" value="{dice}"><br>
+        <label for="roll">Slag:</label><input type="text" id="roll" name="roll" value="{roll}"><br>
         <label for="question">Ödesfråga:</label><input type="text" id="question" name="question" value=""><br>
         <select id="modifier" name="modifier"><br>
             <option value="0" selected>Femti/femti eller vet ej (0)</option>
@@ -64,6 +66,7 @@ def cmd():
     modifier = request.args.get("modifier", None)
     kaos_factor = request.args.get("kaos_factor", None)
     kaos_modifier = request.args.get("kaos_modifier", None)
+    roll = request.args.get("roll", None)
     print(f"Name: {name}")
     print(f"Dice: {dice}")
     print(f"Question: {question}")
@@ -110,6 +113,10 @@ def cmd():
             f.write(f"{name} frågade: {question}\n")
             f.write("\n")
         return redirect(url_for('index'))
+    elif roll is not None and roll != "":
+        result = parse_roll(roll)
+        with open("rolls.txt", "a+") as f:
+            f.write(f"{name} slog {roll}, resultat: {result}\n")
     elif dice is not None and dice.isdigit():
         session['dice'] = dice
         result = random.randint(1,(int(dice)))
@@ -117,13 +124,14 @@ def cmd():
             f.write(f"{name} slog 1T{dice}, resultat: {result}\n")
         return redirect(url_for('index'))
 
-    return generate_page(name, dice)
+    return generate_page(name, dice, roll)
 
 @app.route('/')
 def index():
     name = session.get('name', 'Anonym')
     dice = session.get('dice', '20')
-    return generate_page(name, dice)
+    roll = session.get('roll', '')
+    return generate_page(name, dice, roll)
 
 if __name__ == '__main__':
     socketio = SocketIO(app)
