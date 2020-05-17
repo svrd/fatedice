@@ -13,9 +13,14 @@ def generate_page(name, dice, roll):
         <h1>Ödestärningar</h1>
         <form action="/cmd/" method="get">
         <label for="name">Namn:</label><input type="text" id="name" name="name" value="{name}"><br>
-        <label for="dice">Tärning:</label><input type="text" id="dice" name="dice" value="{dice}"><br>
-        <label for="roll">Slag:</label><input type="text" id="roll" name="roll" value="{roll}"><br>
-        <label for="question">Ödesfråga:</label><input type="text" id="question" name="question" value=""><br>
+        <label for="dice">Tärning:</label><input type="text" id="dice" name="dice" value="{dice}">
+        <input type="submit" name="dice_button" value="Tärning"><br>
+
+        <label for="roll">Slag:</label><input type="text" id="roll" name="roll" value="{roll}">
+        <input type="submit" name="roll_button" value="Slag"><br>
+
+        <label for="question">Ödesfråga:</label><input type="text" id="question" name="question" value="">
+        <input type="submit" name="question_button" value="Fråga"><br>
         <select id="modifier" name="modifier"><br>
             <option value="0" selected>Femti/femti eller vet ej (0)</option>
             <option value="8">Garanterat (+8)</option>
@@ -38,9 +43,8 @@ def generate_page(name, dice, roll):
             <option value="0" selected>Kaos (0)</option>
             <option value="-2">Kaos (-2)</option>
         </select><br>
-        <input type="submit" value="Submit">
+        <input type="submit" name="reload_button" value="Ladda om"><br>
         </form>
-        <button onClick="window.location.reload();">Ladda om sidan</button>
         '''
     lines = ""
     line = ""
@@ -80,7 +84,7 @@ def cmd():
 
     if not name:
         name = session.get('name', 'Anonym')
-    elif question is not None and question != "" \
+    elif request.args.get('question_button') is not None and question is not None and question != "" \
             and modifier.lstrip('-').isnumeric() \
             and kaos_factor.isnumeric() \
             and kaos_modifier.lstrip('-').isnumeric():
@@ -113,11 +117,12 @@ def cmd():
             f.write(f"{name} frågade: {question}\n")
             f.write("\n")
         return redirect(url_for('index'))
-    elif roll is not None and roll != "":
+    elif request.args.get('roll_button') is not None and roll is not None and roll != "":
+        session['roll'] = roll
         result = parse_roll(roll)
         with open("rolls.txt", "a+") as f:
             f.write(f"{name} slog {roll}, resultat: {result}\n")
-    elif dice is not None and dice.isdigit():
+    elif request.args.get('dice_button') is not None and dice is not None and dice.isdigit():
         session['dice'] = dice
         result = random.randint(1,(int(dice)))
         with open("rolls.txt", "a+") as f:
