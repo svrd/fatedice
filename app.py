@@ -6,9 +6,21 @@ import random
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
+socketio = SocketIO(app)
 
 def generate_page(name, dice, roll):
     page = \
+        '''
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
+        <script type="text/javascript" charset="utf-8">
+            var socket = io();
+            socket.on('connect', function() {
+                socket.emit('message', 'connected!');
+            });
+            socket.on('reload', function() { location.reload();})
+        </script>        
+        '''        
+    page = page + \
         f'''
         <h1>Ödestärningar</h1>
         <form action="/cmd/" method="get">
@@ -135,17 +147,20 @@ def cmd():
             f.write(f"Resultat: {result1} + {result2} + {modifier} + {kaos_modifier} = {result}\n")
             f.write(f"{name} frågade: {question}\n")
             f.write("\n")
+        socketio.emit('reload')
         return redirect(url_for('index'))
     elif request.args.get('roll_button') is not None and roll is not None and roll != "":
         session['roll'] = roll
         result = parse_roll(roll)
         with open("rolls.txt", "a+") as f:
             f.write(f"{name} slog {roll}, resultat: {result}\n")
+        socketio.emit('reload')
     elif roll_dice and dice is not None and dice.isdigit():
         session['dice'] = dice
         result = random.randint(1,(int(dice)))
         with open("rolls.txt", "a+") as f:
             f.write(f"{name} slog 1T{dice}, resultat: {result}\n")
+        socketio.emit('reload')
         return redirect(url_for('index'))
 
     return generate_page(name, dice, roll)
@@ -157,6 +172,13 @@ def index():
     roll = session.get('roll', '')
     return generate_page(name, dice, roll)
 
+@socketio.on('connect')
+def test_connect():
+    print('Client connected')
+
+@socketio.on('disconnect')
+def test_disconnect():
+    print('Client disconnected')
+
 if __name__ == '__main__':
-    socketio = SocketIO(app)
     socketio.run(app)
