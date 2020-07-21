@@ -2,13 +2,41 @@
 from rollparser import parse_roll
 from flask import Flask, request, redirect, url_for, session
 from flask_socketio import SocketIO
+from pool import *
 import random
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
 socketio = SocketIO(app)
 
-def generate_page(name, dice, roll):
+def format_pool_roll(roll):
+    formatted_roll = ""
+    for i in range(0, len(roll)):
+        if roll[i] == ' ':
+            continue
+        elif roll[i] == 'B':
+            i += 1
+            if roll[i] == '1' or roll[i] == '6':
+                formatted_roll += f'''<strong style="font-size: x-large; background-color: yellow;">{roll[i]} </strong>'''
+            else:
+                formatted_roll += f'''<text style="background-color: yellow;">{roll[i]} </text>'''
+        elif roll[i] == 'S':
+            i += 1
+            if roll[i] == '6':
+                formatted_roll += f'''<strong style="font-size: x-large; background-color: green; color: white">{roll[i]} </strong>'''
+            else:
+                formatted_roll += f'''<text style="background-color: green; color: white">{roll[i]} </text>'''
+        elif roll[i] == 'I':
+            i += 1
+            if roll[i] == '1' or roll[i] == '6':
+                formatted_roll += f'''<strong style="font-size: x-large; background-color: black; color: white">{roll[i]} </strong>'''
+            else:
+                formatted_roll += f'''<text style="background-color: black; color: white">{roll[i]} </text>'''
+
+    return formatted_roll
+
+
+def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
     page = \
         '''
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
@@ -64,21 +92,62 @@ def generate_page(name, dice, roll):
             <option value="0" selected>Kaos (0)</option>
             <option value="-2">Kaos (-2)</option>
         </select><br>
+
+        <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base" name="base" value="{baseValue}">
+        <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill" name="skill" value="{skillValue}">
+        <label for="roll">Föremål:</label><input type="number" size=2 min=0 id="item" name="item" value="{itemValue}">
+        <input type="submit" name="pool_button" value="Slå"><br>
+
         <input type="submit" name="reload_button" value="Ladda om"><br>
-        </form>
         '''
+
+    line = ""
+    page += "<table border=10><tr><td>Tärningspölen: "
+    try:
+        print("Open pool file")
+        with open("pool.txt", "r+") as f:
+            print("Reading pool file")
+            line = f.readline()
+            if line != "":
+                if line[0:4].find("POOL") == 0:
+                    line = line[4:]
+                    idx = line.find("slog")+5
+                    pool_roll = line[idx:]
+                    line = line[0:idx]
+                    print(pool_roll)
+                    print(line)
+                    formatted_pool_roll = format_pool_roll(pool_roll)
+                    line += formatted_pool_roll
+                    push_button = f'''<input type="hidden" name="pool_roll" id="pool_roll" value="{pool_roll}">
+                                      <input type="submit" name="push_button" value="Pressa">
+                                      <input type="submit" name="no_push_button" value="Pressa inte">'''
+                    print(line)
+                    page += line + push_button
+    except IOError:
+        print("No pool file")
+    page += "</td></tr></table>"
+
+
     lines = ""
     line = ""
+
     try:
         with open("rolls.txt", "r+") as f:
             while True:
                 line = f.readline()
-                lines = line + "<br>" + lines
                 if line == "":
                     break
+                if line[0:4].find("POOL") == 0:
+                    line = line[4:]
+                    pool_roll = line[line.find("slog"):]
+                    line = line[0:line.find("slog")+5]
+                    pool_roll = format_pool_roll(pool_roll)
+                    line += pool_roll
+                lines = line + "<br>" + lines
     except IOError:
-        print("No file")
-    page = page + lines
+        print("No rolls file")
+
+    page = page + lines + "</form>"
 
     return page
 
@@ -148,30 +217,79 @@ def cmd():
             f.write(f"{name} frågade: {question}\n")
             f.write("\n")
         socketio.emit('reload')
-        return redirect(url_for('index'))
+
     elif request.args.get('roll_button') is not None and roll is not None and roll != "":
         session['roll'] = roll
         result = parse_roll(roll)
         with open("rolls.txt", "a+") as f:
             f.write(f"{name} slog {roll}, resultat: {result}\n")
         socketio.emit('reload')
-        return redirect(url_for('index'))
+
     elif roll_dice and dice is not None and dice.isdigit():
         session['dice'] = dice
         result = random.randint(1,(int(dice)))
         with open("rolls.txt", "a+") as f:
             f.write(f"{name} slog 1T{dice}, resultat: {result}\n")
         socketio.emit('reload')
-        return redirect(url_for('index'))
 
-    return generate_page(name, dice, roll)
+    elif request.args.get('pool_button') is not None:
+        base = request.args.get("base", None)
+        skill = request.args.get("skill", None)
+        item = request.args.get("item", None)
+        print(f"base: {base}")
+        print(f"skill: {skill}")
+        print(f"item: {item}")
+    #     artifact = request.args.get("artifact", None)
+        if base.isnumeric() and skill.isnumeric() and item.isnumeric():
+            session['baseValue'] = base
+            session['skillValue'] = skill
+            session['itemValue'] = item
+            baseValue = int(base)
+            skillValue = int(skill)
+            itemValue = int(item)
+            if baseValue >= 0 and skillValue >= 0 and itemValue >= 0:
+                result = roll_pool(baseValue, skillValue, itemValue, 0)
+                try:
+                    with open("pool.txt", "r+") as f:
+                        line = f.readline()
+                        if line != "":
+                            with open("rolls.txt", "a+") as f2:
+                                f2.write(line)
+                except IOError:
+                    print("No pool file")
+                with open("pool.txt", "w+") as f:
+                    f.write(f"POOL {name} slog {result}\n")
+                socketio.emit('reload')  
+        print("not a numeric value")
+
+    elif request.args.get('no_push_button') is not None:
+        pool_roll = request.args.get("pool_roll", None)
+        with open("rolls.txt", "a+") as f:
+            f.write(f"POOL {name} slog {pool_roll}")
+        with open("pool.txt", "w+") as f:
+            f.write("")
+        socketio.emit('reload')
+
+    elif request.args.get('push_button') is not None:
+        pool_roll = request.args.get("pool_roll", None)
+        pool_roll = push_roll(pool_roll)
+        with open("rolls.txt", "a+") as f:
+            f.write(f"POOL {name} pressade och slog {pool_roll}\n")
+        with open("pool.txt", "w+") as f:
+            f.write("")
+        socketio.emit('reload')
+
+    return redirect(url_for('index'))
 
 @app.route('/')
 def index():
     name = session.get('name', 'Anonym')
     dice = session.get('dice', '20')
     roll = session.get('roll', '')
-    return generate_page(name, dice, roll)
+    baseValue = session.get('baseValue', '0')
+    skillValue = session.get('skillValue', '0')
+    itemValue = session.get('itemValue', '0')
+    return generate_page(name, dice, roll, baseValue, skillValue, itemValue)
 
 @socketio.on('connect')
 def test_connect():
