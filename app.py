@@ -52,6 +52,7 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
         f'''
         <h1>Ödestärningar</h1>
         <form action="/cmd/" method="get">
+        <input type="submit" name="reload_button" value="Ladda om"><br>
         <label for="name">Namn:</label><input type="text" id="name" name="name" value="{name}"><br>
         <label for="dice">Tärning:</label><input type="text" id="dice" name="dice" value="{dice}">
         <input type="submit" name="dice_button" value="Tärning"><br>
@@ -92,17 +93,15 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
             <option value="0" selected>Kaos (0)</option>
             <option value="-2">Kaos (-2)</option>
         </select><br>
-
+        <h2>Mutant</h2>
         <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base" name="base" value="{baseValue}">
         <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill" name="skill" value="{skillValue}">
-        <label for="roll">Föremål:</label><input type="number" size=2 min=0 id="item" name="item" value="{itemValue}">
+        <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item" name="item" value="{itemValue}">
         <input type="submit" name="pool_button" value="Slå"><br>
-
-        <input type="submit" name="reload_button" value="Ladda om"><br>
         '''
 
     line = ""
-    page += "<table border=10><tr><td>Tärningspölen: "
+    page += "<table border=10><tr><td><h3>Tärningspölen</h3>"
     try:
         print("Open pool file")
         with open("pool.txt", "r+") as f:
@@ -127,7 +126,7 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
         print("No pool file")
     page += "</td></tr></table>"
 
-
+    page += "<h3>Tärningsslag</h3>"
     lines = ""
     line = ""
 
