@@ -3,6 +3,7 @@ from rollparser import parse_roll
 from flask import Flask, request, redirect, url_for, session
 from flask_socketio import SocketIO
 from pool import *
+from dicestatistics import add_stat, read_stats, write_stats, get_stats
 import random
 
 app = Flask(__name__)
@@ -47,7 +48,9 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
             });
             socket.on('reload', function() { location.reload();})
         </script>        
-        '''        
+        '''      
+    read_stats()  
+    d6_statistics = get_stats()
     page = page + \
         f'''
         <h1>Ödestärningar</h1>
@@ -94,6 +97,7 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
             <option value="-2">Kaos (-2)</option>
         </select><br>
         <h2>Mutant</h2>
+        {d6_statistics}<br>
         <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base" name="base" value="{baseValue}">
         <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill" name="skill" value="{skillValue}">
         <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item" name="item" value="{itemValue}">
@@ -166,6 +170,8 @@ def cmd():
     print(f"Modifier: {modifier}")
     print(f"Kaos Factor: {kaos_factor}")
     print(f"Kaos Modifier: {kaos_modifier}")
+
+    read_stats()
 
     if name:
         session['name'] = name
@@ -277,6 +283,8 @@ def cmd():
         with open("pool.txt", "w+") as f:
             f.write("")
         socketio.emit('reload')
+
+    write_stats()
 
     return redirect(url_for('index'))
 
