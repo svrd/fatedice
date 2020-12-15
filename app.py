@@ -4,6 +4,7 @@ from flask import Flask, request, redirect, url_for, session
 from flask_socketio import SocketIO
 from pool import *
 from dicestatistics import add_stat, read_stats, write_stats, get_stats
+from randomtable import *
 import random
 
 app = Flask(__name__)
@@ -96,8 +97,11 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
             <option value="0" selected>Kaos (0)</option>
             <option value="-2">Kaos (-2)</option>
         </select><br>
+        <label for="random_table">Slumpa:</label><input type="text" id="random_table" name="random_table" value="">
+        <input type="submit" name="random_table_button" value="Slumpa"><br>        
         <h2>Mutant</h2>
         {d6_statistics}<br>
+        <input type="submit" name="junk_button" value="Vad är det jag hittar?"><input type="submit" name="who_button" value="Vem är det där?"><br><br>
         <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base" name="base" value="{baseValue}">
         <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill" name="skill" value="{skillValue}">
         <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item" name="item" value="{itemValue}">
@@ -164,12 +168,14 @@ def cmd():
     kaos_factor = request.args.get("kaos_factor", None)
     kaos_modifier = request.args.get("kaos_modifier", None)
     roll = request.args.get("roll", None)
+    random_table = request.args.get("random_table", None)
     print(f"Name: {name}")
     print(f"Dice: {dice}")
     print(f"Question: {question}")
     print(f"Modifier: {modifier}")
     print(f"Kaos Factor: {kaos_factor}")
     print(f"Kaos Modifier: {kaos_modifier}")
+    print(f"Random table: {random_table}")
 
     read_stats()
 
@@ -237,6 +243,15 @@ def cmd():
             f.write(f"{name} slog 1T{dice}, resultat: {result}\n")
         socketio.emit('reload')
 
+    elif request.args.get('random_table_button') is not None:
+        items = random_list(random_table.split())
+        with open("rolls.txt", "a+") as f:
+            f.write("\n")
+            for item in reversed(items):
+                f.write(item + "\n")
+            f.write("\n")
+        socketio.emit('reload')
+
     elif request.args.get('pool_button') is not None:
         base = request.args.get("base", None)
         skill = request.args.get("skill", None)
@@ -282,6 +297,21 @@ def cmd():
             f.write(f"POOL {name} pressade och slog {pool_roll}\n")
         with open("pool.txt", "w+") as f:
             f.write("")
+        socketio.emit('reload')
+
+    elif request.args.get('junk_button') is not None:
+        item = random_list(["skrot"])[0]
+        with open("rolls.txt", "a+") as f:
+            f.write(f"{name} hittar: {item}\n")
+        socketio.emit('reload')
+
+    elif request.args.get('who_button') is not None:
+        items = random_list("mutantnamn mutantsyssla egenhet egenhet".split())
+        with open("rolls.txt", "a+") as f:
+            f.write("\n")
+            for item in reversed(items):
+                f.write(item + "\n")
+            f.write("\n")
         socketio.emit('reload')
 
     write_stats()
