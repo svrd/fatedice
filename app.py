@@ -177,6 +177,8 @@ def cmd():
     print(f"Kaos Modifier: {kaos_modifier}")
     print(f"Random table: {random_table}")
 
+    random.seed()
+
     read_stats()
 
     if name:
