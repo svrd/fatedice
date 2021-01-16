@@ -5,6 +5,7 @@ from flask_socketio import SocketIO
 from pool import *
 from dicestatistics import add_stat, read_stats, write_stats, get_stats
 from randomtable import *
+from detailcheck import *
 import random
 
 app = Flask(__name__)
@@ -73,8 +74,9 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
         <label for="roll">Slag:</label><input type="text" id="roll" name="roll" value="{roll}">
         <input type="submit" name="roll_button" value="Slag"><br>
 
-        <label for="question">Ödesfråga:</label><input type="text" id="question" name="question" value="">
-        <input type="submit" name="question_button" value="Fråga"><br>
+        <label for="question">Fråga:</label><input type="text" id="question" name="question" value="">
+        <input type="submit" name="fate_question_button" value="Ödesfråga">
+        <input type="submit" name="detail_question_button" value="Detaljfråga"><br>
         <select id="modifier" name="modifier"><br>
             <option value="0" selected>Femti/femti eller vet ej (0)</option>
             <option value="8">Garanterat (+8)</option>
@@ -97,7 +99,9 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
             <option value="0" selected>Kaos (0)</option>
             <option value="-2">Kaos (-2)</option>
         </select><br>
-        <input type="submit" name="random_event_button" value="Slumpmässig händelse"><br>
+        <input type="submit" name="random_event_button" value="Slumpmässig händelse">
+        <input type="submit" name="meaning_table_action_button" value="Handling">
+        <input type="submit" name="meaning_table_description_button" value="Beskrivning"><br>
         <label for="random_table">Slumpa:</label><input type="text" id="random_table" name="random_table" value="">
         <input type="submit" name="random_table_button" value="Slumpa"><br>
         <h2>Mutant</h2>
@@ -198,7 +202,7 @@ def cmd():
 
     if not name:
         name = session.get('name', 'Anonym')
-    elif request.args.get('question_button') is not None and question is not None and question != "" \
+    elif request.args.get('fate_question_button') is not None and question is not None and question != "" \
             and modifier.lstrip('-').isnumeric() \
             and kaos_factor.isnumeric() \
             and kaos_modifier.lstrip('-').isnumeric():
@@ -224,7 +228,6 @@ def cmd():
         with open("rolls.txt", "a+") as f:
             f.write("\n")
             if random_event == "JA":
-
                 f.write(f"Slumpmässig händelse!\n")
             f.write(f"Svar: {answer}!\n")
             f.write(f"Kaosfaktor: {kaos_factor}, Kaostärning: {kaos_roll}\n")
@@ -232,13 +235,43 @@ def cmd():
             f.write(f"{name} frågade: {question}\n")
             f.write("\n")
         socketio.emit('reload')
+    
+    elif request.args.get('detail_question_button') is not None and question is not None and question != "" \
+            and kaos_modifier.lstrip('-').isnumeric():
+        result1 = random.randint(1,10)
+        result2 = random.randint(1,10)
+        kaos_modifier_number = int(kaos_modifier)
+        result = result1 + result2 + kaos_modifier_number
+        answer = detail_check(result)
+        with open("rolls.txt", "a+") as f:
+            f.write("\n")
+            f.write(f"Svar: {answer}!\n")
+            f.write(f"Resultat: {result1} + {result2} + {kaos_modifier_number} = {result}\n")
+            f.write(f"{name} frågade: {question}\n")
+            f.write("\n")
+        socketio.emit('reload')
 
     elif request.args.get('random_event_button') is not None:
         with open("rolls.txt", "a+") as f:
             focus = random_list(["event_focus"])[0]
-            meaning_action1 = random_list(["event_meaning_action1"])[0]
-            meaning_action2 = random_list(["event_meaning_action2"])[0]
+            meaning_action1 = random_list(["meaning_action1"])[0]
+            meaning_action2 = random_list(["meaning_action2"])[0]
             f.write(f"Händelse: {focus}, {meaning_action1} av {meaning_action2}\n")
+        socketio.emit('reload')
+
+    elif request.args.get('meaning_table_action_button') is not None:
+        with open("rolls.txt", "a+") as f:
+            meaning_action1 = random_list(["meaning_action1"])[0]
+            meaning_action2 = random_list(["meaning_action2"])[0]
+            f.write(f"{meaning_action1} av {meaning_action2}\n")
+        socketio.emit('reload')
+
+    elif request.args.get('meaning_table_description_button') is not None:
+        with open("rolls.txt", "a+") as f:
+            meaning_description1 = random_list(["meaning_descriptor1"])[0]
+            meaning_description2 = random_list(["meaning_descriptor2"])[0]
+            f.write(f"{meaning_description1} {meaning_description2}\n")
+        socketio.emit('reload')        
 
     elif request.args.get('roll_button') is not None and roll is not None and roll != "":
         session['roll'] = roll
