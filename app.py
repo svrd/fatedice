@@ -97,8 +97,9 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
             <option value="0" selected>Kaos (0)</option>
             <option value="-2">Kaos (-2)</option>
         </select><br>
+        <input type="submit" name="random_event_button" value="Slumpmässig händelse"><br>
         <label for="random_table">Slumpa:</label><input type="text" id="random_table" name="random_table" value="">
-        <input type="submit" name="random_table_button" value="Slumpa"><br>        
+        <input type="submit" name="random_table_button" value="Slumpa"><br>
         <h2>Mutant</h2>
         {d6_statistics}<br>
         <input type="submit" name="junk_button" value="Vad är det jag hittar?"><input type="submit" name="who_button" value="Vem är det där?"><br><br>
@@ -223,6 +224,7 @@ def cmd():
         with open("rolls.txt", "a+") as f:
             f.write("\n")
             if random_event == "JA":
+
                 f.write(f"Slumpmässig händelse!\n")
             f.write(f"Svar: {answer}!\n")
             f.write(f"Kaosfaktor: {kaos_factor}, Kaostärning: {kaos_roll}\n")
@@ -230,6 +232,13 @@ def cmd():
             f.write(f"{name} frågade: {question}\n")
             f.write("\n")
         socketio.emit('reload')
+
+    elif request.args.get('random_event_button') is not None:
+        with open("rolls.txt", "a+") as f:
+            focus = random_list(["event_focus"])[0]
+            meaning_action1 = random_list(["event_meaning_action1"])[0]
+            meaning_action2 = random_list(["event_meaning_action2"])[0]
+            f.write(f"Händelse: {focus}, {meaning_action1} av {meaning_action2}\n")
 
     elif request.args.get('roll_button') is not None and roll is not None and roll != "":
         session['roll'] = roll
