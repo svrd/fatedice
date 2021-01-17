@@ -10,6 +10,7 @@ import random
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = 'secret!'
+app.config['transports'] = 'websocket'
 socketio = SocketIO(app)
 
 def format_pool_roll(roll):
