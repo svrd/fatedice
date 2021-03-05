@@ -344,28 +344,16 @@ def cmd():
         base = request.args.get("base", None)
         skill = request.args.get("skill", None)
         item = request.args.get("item", None)
-        if base.isnumeric() and skill.isnumeric() and item.isnumeric():
-            session['baseValue'] = base
-            session['skillValue'] = skill
-            session['itemValue'] = item
 
     if request.args.get('pool_button2') is not None:
         base = request.args.get("base2", None)
         skill = request.args.get("skill2", None)
         item = request.args.get("item2", None)
-        if base.isnumeric() and skill.isnumeric() and item.isnumeric():
-            session['baseValue2'] = base
-            session['skillValue2'] = skill
-            session['itemValue2'] = item
 
     if request.args.get('pool_button3') is not None:
         base = request.args.get("base3", None)
         skill = request.args.get("skill3", None)
         item = request.args.get("item3", None)
-        if base.isnumeric() and skill.isnumeric() and item.isnumeric():
-            session['baseValue3'] = base
-            session['skillValue3'] = skill
-            session['itemValue3'] = item
 
     if base != "" and skill != "" and item != "":
         print(f"base: {base}")
@@ -373,6 +361,15 @@ def cmd():
         print(f"item: {item}")
     #     artifact = request.args.get("artifact", None)
         if base.isnumeric() and skill.isnumeric() and item.isnumeric():
+            session['baseValue'] = request.args.get("base", None)
+            session['skillValue'] = request.args.get("skill", None)
+            session['itemValue'] = request.args.get("item", None)
+            session['baseValue2'] = request.args.get("base2", None)
+            session['skillValue2'] = request.args.get("skill2", None)
+            session['itemValue2'] = request.args.get("item2", None)
+            session['baseValue3'] = request.args.get("base3", None)
+            session['skillValue3'] = request.args.get("skill3", None)
+            session['itemValue3'] = request.args.get("item3", None)
             baseValue = int(base)
             skillValue = int(skill)
             itemValue = int(item)
