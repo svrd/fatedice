@@ -40,7 +40,7 @@ def format_pool_roll(roll):
     return formatted_roll
 
 
-def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
+def generate_page(nameValueDict):
     page = \
         '''
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
@@ -59,8 +59,8 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
         <h1>Ödestärningar</h1>
         <form action="/cmd/" method="get">
         <input type="submit" name="reload_button" value="Ladda om"><br>
-        <label for="name">Namn:</label><input type="text" id="name" name="name" value="{name}"><br>
-        <label for="dice">Tärning:</label><input type="text" id="dice" name="dice" value="{dice}">
+        <label for="name">Namn:</label><input type="text" id="name" name="name" value="{nameValueDict['name']}"><br>
+        <label for="dice">Tärning:</label><input type="text" id="dice" name="dice" value="{nameValueDict['dice']}">
         <input type="submit" name="dice_button" value="Tärning"><br>
 
         <input type="submit" name="d100_button" value="1T100">
@@ -72,7 +72,7 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
         <input type="submit" name="d4_button" value="1T4">
         <input type="submit" name="d2_button" value="1T2"><br>
 
-        <label for="roll">Slag:</label><input type="text" id="roll" name="roll" value="{roll}">
+        <label for="roll">Slag:</label><input type="text" id="roll" name="roll" value="{nameValueDict['roll']}">
         <input type="submit" name="roll_button" value="Slag"><br>
 
         <label for="question">Fråga:</label><input type="text" id="question" name="question" value="">
@@ -105,13 +105,21 @@ def generate_page(name, dice, roll, baseValue, skillValue, itemValue):
         <input type="submit" name="meaning_table_description_button" value="Beskrivning"><br>
         <label for="random_table">Slumpa:</label><input type="text" id="random_table" name="random_table" value="">
         <input type="submit" name="random_table_button" value="Slumpa"><br>
-        <h2>Mutant</h2>
-        {d6_statistics}<br>
-        <input type="submit" name="junk_button" value="Vad är det jag hittar?"><input type="submit" name="who_button" value="Vem är det där?"><br><br>
-        <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base" name="base" value="{baseValue}">
-        <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill" name="skill" value="{skillValue}">
-        <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item" name="item" value="{itemValue}">
+        <!--<h2>Mutant</h2>-->
+        <!--{d6_statistics}<br>-->
+        <!--<input type="submit" name="junk_button" value="Vad är det jag hittar?"><input type="submit" name="who_button" value="Vem är det där?"><br><br>-->
+        <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base" name="base" value="{nameValueDict['baseValue']}">
+        <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill" name="skill" value="{nameValueDict['skillValue']}">
+        <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item" name="item" value="{nameValueDict['itemValue']}">
         <input type="submit" name="pool_button" value="Slå"><br>
+        <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base2" name="base2" value="{nameValueDict['baseValue2']}">
+        <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill2" name="skill2" value="{nameValueDict['skillValue2']}">
+        <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item2" name="item2" value="{nameValueDict['itemValue2']}">
+        <input type="submit" name="pool_button2" value="Slå"><br>
+        <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base3" name="base3" value="{nameValueDict['baseValue3']}">
+        <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill3" name="skill3" value="{nameValueDict['skillValue3']}">
+        <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item3" name="item3" value="{nameValueDict['itemValue3']}">
+        <input type="submit" name="pool_button3" value="Slå"><br>
         '''
 
     line = ""
@@ -297,36 +305,6 @@ def cmd():
             f.write("\n")
         socketio.emit('reload')
 
-    elif request.args.get('pool_button') is not None:
-        base = request.args.get("base", None)
-        skill = request.args.get("skill", None)
-        item = request.args.get("item", None)
-        print(f"base: {base}")
-        print(f"skill: {skill}")
-        print(f"item: {item}")
-    #     artifact = request.args.get("artifact", None)
-        if base.isnumeric() and skill.isnumeric() and item.isnumeric():
-            session['baseValue'] = base
-            session['skillValue'] = skill
-            session['itemValue'] = item
-            baseValue = int(base)
-            skillValue = int(skill)
-            itemValue = int(item)
-            if baseValue >= 0 and skillValue >= 0 and itemValue >= 0:
-                result = roll_pool(baseValue, skillValue, itemValue, 0)
-                try:
-                    with open("pool.txt", "r+") as f:
-                        line = f.readline()
-                        if line != "":
-                            with open("rolls.txt", "a+") as f2:
-                                f2.write(line)
-                except IOError:
-                    print("No pool file")
-                with open("pool.txt", "w+") as f:
-                    f.write(f"POOL {name} slog {result}\n")
-                socketio.emit('reload')  
-        print("not a numeric value")
-
     elif request.args.get('no_push_button') is not None:
         pool_roll = request.args.get("pool_roll", None)
         with open("rolls.txt", "a+") as f:
@@ -359,19 +337,80 @@ def cmd():
             f.write("\n")
         socketio.emit('reload')
 
+    base = ""
+    skill = ""
+    item = ""
+    if request.args.get('pool_button') is not None:
+        base = request.args.get("base", None)
+        skill = request.args.get("skill", None)
+        item = request.args.get("item", None)
+        if base.isnumeric() and skill.isnumeric() and item.isnumeric():
+            session['baseValue'] = base
+            session['skillValue'] = skill
+            session['itemValue'] = item
+
+    if request.args.get('pool_button2') is not None:
+        base = request.args.get("base2", None)
+        skill = request.args.get("skill2", None)
+        item = request.args.get("item2", None)
+        if base.isnumeric() and skill.isnumeric() and item.isnumeric():
+            session['baseValue2'] = base
+            session['skillValue2'] = skill
+            session['itemValue2'] = item
+
+    if request.args.get('pool_button3') is not None:
+        base = request.args.get("base3", None)
+        skill = request.args.get("skill3", None)
+        item = request.args.get("item3", None)
+        if base.isnumeric() and skill.isnumeric() and item.isnumeric():
+            session['baseValue3'] = base
+            session['skillValue3'] = skill
+            session['itemValue3'] = item
+
+    if base != "" and skill != "" and item != "":
+        print(f"base: {base}")
+        print(f"skill: {skill}")
+        print(f"item: {item}")
+    #     artifact = request.args.get("artifact", None)
+        if base.isnumeric() and skill.isnumeric() and item.isnumeric():
+            baseValue = int(base)
+            skillValue = int(skill)
+            itemValue = int(item)
+            if baseValue >= 0 and skillValue >= 0 and itemValue >= 0:
+                result = roll_pool(baseValue, skillValue, itemValue, 0)
+                try:
+                    with open("pool.txt", "r+") as f:
+                        line = f.readline()
+                        if line != "":
+                            with open("rolls.txt", "a+") as f2:
+                                f2.write(line)
+                except IOError:
+                    print("No pool file")
+                with open("pool.txt", "w+") as f:
+                    f.write(f"POOL {name} slog {result}\n")
+                socketio.emit('reload')
+        print("not a numeric value")
+
     write_stats()
 
     return redirect(url_for('index'))
 
 @app.route('/')
 def index():
-    name = session.get('name', 'Anonym')
-    dice = session.get('dice', '20')
-    roll = session.get('roll', '')
-    baseValue = session.get('baseValue', '0')
-    skillValue = session.get('skillValue', '0')
-    itemValue = session.get('itemValue', '0')
-    return generate_page(name, dice, roll, baseValue, skillValue, itemValue)
+    nameValueDict = {}
+    nameValueDict['name'] = session.get('name', 'Anonym')
+    nameValueDict['dice'] = session.get('dice', '20')
+    nameValueDict['roll'] = session.get('roll', '')
+    nameValueDict['baseValue'] = session.get('baseValue', '0')
+    nameValueDict['skillValue'] = session.get('skillValue', '0')
+    nameValueDict['itemValue'] = session.get('itemValue', '0')
+    nameValueDict['baseValue2'] = session.get('baseValue2', '0')
+    nameValueDict['skillValue2'] = session.get('skillValue2', '0')
+    nameValueDict['itemValue2'] = session.get('itemValue2', '0')    
+    nameValueDict['baseValue3'] = session.get('baseValue3', '0')
+    nameValueDict['skillValue3'] = session.get('skillValue3', '0')
+    nameValueDict['itemValue3'] = session.get('itemValue3', '0')
+    return generate_page(nameValueDict)
 
 @socketio.on('connect')
 def test_connect():
