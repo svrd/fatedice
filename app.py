@@ -54,6 +54,13 @@ def generate_page(nameValueDict):
         '''      
     read_stats()  
     d6_statistics = get_stats()
+
+    combination = ""
+    if nameValueDict['combination'] == "":
+        combination = f'''<label for="combination">Kombination:</label><input type="text" id="combination" name="combination" value="{nameValueDict['combination']}"><input type="submit" name="hide_button" value="Dölj"><br>'''
+    else:
+        combination = f'''<label for="combination">Kombination: {nameValueDict['combination']}</label><input type="submit" name="show_button" value="Visa"><br>'''
+
     page = page + \
         f'''
         <h1>Ödestärningar</h1>
@@ -108,6 +115,7 @@ def generate_page(nameValueDict):
         <!--<h2>Mutant</h2>-->
         <!--{d6_statistics}<br>-->
         <!--<input type="submit" name="junk_button" value="Vad är det jag hittar?"><input type="submit" name="who_button" value="Vem är det där?"><br><br>-->
+        {combination}
         <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base" name="base" value="{nameValueDict['baseValue']}">
         <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill" name="skill" value="{nameValueDict['skillValue']}">
         <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item" name="item" value="{nameValueDict['itemValue']}">
@@ -336,6 +344,16 @@ def cmd():
                 f.write(item + "\n")
             f.write("\n")
         socketio.emit('reload')
+    elif request.args.get('hide_button') is not None:
+        session['combination'] = request.args.get('combination')
+        with open("rolls.txt", "a+") as f:
+            f.write(f"{name} har dolt en kombination\n")
+        socketio.emit('reload')
+    elif request.args.get('show_button') is not None:
+        with open("rolls.txt", "a+") as f:
+            f.write(f"{name} visar kombination: {session['combination']}\n")
+        session['combination'] = ""
+        socketio.emit('reload')
 
     base = ""
     skill = ""
@@ -407,6 +425,7 @@ def index():
     nameValueDict['baseValue3'] = session.get('baseValue3', '0')
     nameValueDict['skillValue3'] = session.get('skillValue3', '0')
     nameValueDict['itemValue3'] = session.get('itemValue3', '0')
+    nameValueDict['combination'] = session.get('combination', '')
     return generate_page(nameValueDict)
 
 @socketio.on('connect')
