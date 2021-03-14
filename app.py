@@ -13,10 +13,13 @@ app.config['SECRET_KEY'] = 'secret!'
 app.config['transports'] = 'websocket'
 socketio = SocketIO(app)
 
-def format_pool_roll(roll):
+def format_pool_roll(pool_roll):
     formatted_roll = ""
-    for i in range(0, len(roll)):
-        if roll[i] == ' ':
+    rolls = pool_roll.split(' ')
+    artifact_rolls = ""
+    for roll in rolls:
+        i = 0
+        if roll == '':
             continue
         elif roll[i] == 'B':
             i += 1
@@ -36,6 +39,25 @@ def format_pool_roll(roll):
                 formatted_roll += f'''<strong style="font-size: x-large; background-color: black; color: white">{roll[i]} </strong>'''
             else:
                 formatted_roll += f'''<text style="background-color: black; color: white">{roll[i]} </text>'''
+        elif roll[i] == 'A':
+            i += 1
+            artifact_dice_and_roll = roll[i:].split(':')
+            artifact_dice = int(artifact_dice_and_roll[0])
+            artifact_roll = int(artifact_dice_and_roll[1])
+            artifact_rolls += f"T{artifact_dice}={artifact_roll} "
+            if artifact_roll > 11:
+                formatted_roll += f'''<strong style="font-size: x-large; background-color: red; color: white">6666 </strong>'''
+            elif artifact_roll > 9:
+                formatted_roll += f'''<strong style="font-size: x-large; background-color: red; color: white">666 </strong>'''
+            elif artifact_roll > 7:
+                formatted_roll += f'''<strong style="font-size: x-large; background-color: red; color: white">66 </strong>'''
+            elif artifact_roll > 5:
+                formatted_roll += f'''<strong style="font-size: x-large; background-color: red; color: white">6 </strong>'''
+            else:
+                formatted_roll += f'''<text style="background-color: red; color: white">- </text>'''
+
+    if artifact_rolls != "":
+        formatted_roll += "<text>  " + artifact_rolls + "</text>"
 
     return formatted_roll
 
@@ -125,6 +147,7 @@ def generate_page(nameValueDict):
             <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base{i}" name="base{i}" value="{nameValueDict['baseValue' + str(i)]}">
             <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill{i}" name="skill{i}" value="{nameValueDict['skillValue' + str(i)]}">
             <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item{i}" name="item{i}" value="{nameValueDict['itemValue' + str(i)]}">
+            <label for="roll">Artefakt:</label><input type="text" size=2 id="artifact{i}" name="artifact{i}" value="{nameValueDict['artifactValue' + str(i)]}">
             <input type="submit" name="pool_button{i}" value="Slå"><br>
             '''
     page = page + \
@@ -367,23 +390,31 @@ def cmd():
             base = request.args.get(f"base{i}", None)
             skill = request.args.get(f"skill{i}", None)
             item = request.args.get(f"item{i}", None)
+            artifact = request.args.get(f"artifact{i}", None)
             break
 
     if base != "" and skill != "" and item != "":
         print(f"base: {base}")
         print(f"skill: {skill}")
         print(f"item: {item}")
-    #     artifact = request.args.get("artifact", None)
+        print(f"artifact: {artifact}")
         if base.isnumeric() and skill.isnumeric() and item.isnumeric():
             for i in range(1, no_of_combinations+1):
                 session[f'baseValue{i}'] = request.args.get(f"base{i}", None)
                 session[f'skillValue{i}'] = request.args.get(f"skill{i}", None)
                 session[f'itemValue{i}'] = request.args.get(f"item{i}", None)
+                session[f'artifactValue{i}'] = request.args.get(f"artifact{i}", None)
             baseValue = int(base)
             skillValue = int(skill)
             itemValue = int(item)
+            artifactList = artifact.split(' ')
+            artifactDice = []
+            for a in artifactList:
+                if a.isnumeric() and (a == "8" or a == "10" or a == "12"):
+                    artifactDice.append(int(a))
             if baseValue >= 0 and skillValue >= 0 and itemValue >= 0:
-                result = roll_pool(baseValue, skillValue, itemValue, 0)
+                result = roll_pool(baseValue, skillValue, itemValue, artifactDice)
+                print(f"pool roll: {result}")
                 try:
                     with open("pool.txt", "r+") as f:
                         line = f.readline()
@@ -420,6 +451,7 @@ def index():
         nameValueDict[f'baseValue{i}'] = session.get(f'baseValue{i}', '0')
         nameValueDict[f'skillValue{i}'] = session.get(f'skillValue{i}', '0')
         nameValueDict[f'itemValue{i}'] = session.get(f'itemValue{i}', '0')
+        nameValueDict[f'artifactValue{i}'] = session.get(f'artifactValue{i}', '0')
     return generate_page(nameValueDict)
 
 @socketio.on('connect')
