@@ -116,19 +116,22 @@ def generate_page(nameValueDict):
         <!--{d6_statistics}<br>-->
         <!--<input type="submit" name="junk_button" value="Vad är det jag hittar?"><input type="submit" name="who_button" value="Vem är det där?"><br><br>-->
         {combination}
-        <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base" name="base" value="{nameValueDict['baseValue']}">
-        <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill" name="skill" value="{nameValueDict['skillValue']}">
-        <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item" name="item" value="{nameValueDict['itemValue']}">
-        <input type="submit" name="pool_button" value="Slå"><br>
-        <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base2" name="base2" value="{nameValueDict['baseValue2']}">
-        <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill2" name="skill2" value="{nameValueDict['skillValue2']}">
-        <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item2" name="item2" value="{nameValueDict['itemValue2']}">
-        <input type="submit" name="pool_button2" value="Slå"><br>
-        <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base3" name="base3" value="{nameValueDict['baseValue3']}">
-        <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill3" name="skill3" value="{nameValueDict['skillValue3']}">
-        <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item3" name="item3" value="{nameValueDict['itemValue3']}">
-        <input type="submit" name="pool_button3" value="Slå"><br>
         '''
+
+    no_of_combinations = int(nameValueDict['no_of_combinations'])
+    for i in range(1, no_of_combinations + 1):
+        page = page + \
+            f'''
+            <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base{i}" name="base{i}" value="{nameValueDict['baseValue' + str(i)]}">
+            <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill{i}" name="skill{i}" value="{nameValueDict['skillValue' + str(i)]}">
+            <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item{i}" name="item{i}" value="{nameValueDict['itemValue' + str(i)]}">
+            <input type="submit" name="pool_button{i}" value="Slå"><br>
+            '''
+    page = page + \
+        f'''
+        <label for="roll">Antal tärningskombinationer:</label><input type="text" id="no_of_combinations" name="no_of_combinations" value="{nameValueDict['no_of_combinations']}"><input type="submit" name="no_of_combinations_button" value="Ändra"><br>
+        '''
+
 
     line = ""
     page += "<table border=10><tr><td><h3>Tärningspölen</h3>"
@@ -355,23 +358,16 @@ def cmd():
         session['combination'] = ""
         socketio.emit('reload')
 
+    no_of_combinations = int(session.get('no_of_combinations', '3'))
     base = ""
     skill = ""
     item = ""
-    if request.args.get('pool_button') is not None:
-        base = request.args.get("base", None)
-        skill = request.args.get("skill", None)
-        item = request.args.get("item", None)
-
-    if request.args.get('pool_button2') is not None:
-        base = request.args.get("base2", None)
-        skill = request.args.get("skill2", None)
-        item = request.args.get("item2", None)
-
-    if request.args.get('pool_button3') is not None:
-        base = request.args.get("base3", None)
-        skill = request.args.get("skill3", None)
-        item = request.args.get("item3", None)
+    for i in range(1, no_of_combinations+1):
+        if request.args.get(f'pool_button{i}') is not None:
+            base = request.args.get(f"base{i}", None)
+            skill = request.args.get(f"skill{i}", None)
+            item = request.args.get(f"item{i}", None)
+            break
 
     if base != "" and skill != "" and item != "":
         print(f"base: {base}")
@@ -379,15 +375,10 @@ def cmd():
         print(f"item: {item}")
     #     artifact = request.args.get("artifact", None)
         if base.isnumeric() and skill.isnumeric() and item.isnumeric():
-            session['baseValue'] = request.args.get("base", None)
-            session['skillValue'] = request.args.get("skill", None)
-            session['itemValue'] = request.args.get("item", None)
-            session['baseValue2'] = request.args.get("base2", None)
-            session['skillValue2'] = request.args.get("skill2", None)
-            session['itemValue2'] = request.args.get("item2", None)
-            session['baseValue3'] = request.args.get("base3", None)
-            session['skillValue3'] = request.args.get("skill3", None)
-            session['itemValue3'] = request.args.get("item3", None)
+            for i in range(1, no_of_combinations+1):
+                session[f'baseValue{i}'] = request.args.get(f"base{i}", None)
+                session[f'skillValue{i}'] = request.args.get(f"skill{i}", None)
+                session[f'itemValue{i}'] = request.args.get(f"item{i}", None)
             baseValue = int(base)
             skillValue = int(skill)
             itemValue = int(item)
@@ -406,6 +397,12 @@ def cmd():
                 socketio.emit('reload')
         print("not a numeric value")
 
+    no_of_combinations = 3
+    if request.args.get('no_of_combinations_button') is not None:
+        no_of_combinations = request.args.get("no_of_combinations", "3")
+        if no_of_combinations.isnumeric() and int(no_of_combinations) < 20:
+            session['no_of_combinations'] = no_of_combinations
+
     write_stats()
 
     return redirect(url_for('index'))
@@ -416,16 +413,13 @@ def index():
     nameValueDict['name'] = session.get('name', 'Anonym')
     nameValueDict['dice'] = session.get('dice', '20')
     nameValueDict['roll'] = session.get('roll', '')
-    nameValueDict['baseValue'] = session.get('baseValue', '0')
-    nameValueDict['skillValue'] = session.get('skillValue', '0')
-    nameValueDict['itemValue'] = session.get('itemValue', '0')
-    nameValueDict['baseValue2'] = session.get('baseValue2', '0')
-    nameValueDict['skillValue2'] = session.get('skillValue2', '0')
-    nameValueDict['itemValue2'] = session.get('itemValue2', '0')    
-    nameValueDict['baseValue3'] = session.get('baseValue3', '0')
-    nameValueDict['skillValue3'] = session.get('skillValue3', '0')
-    nameValueDict['itemValue3'] = session.get('itemValue3', '0')
     nameValueDict['combination'] = session.get('combination', '')
+    nameValueDict['no_of_combinations'] = session.get('no_of_combinations', '3')
+    no_of_combinations = int(nameValueDict['no_of_combinations'])
+    for i in range(1, no_of_combinations + 1):    
+        nameValueDict[f'baseValue{i}'] = session.get(f'baseValue{i}', '0')
+        nameValueDict[f'skillValue{i}'] = session.get(f'skillValue{i}', '0')
+        nameValueDict[f'itemValue{i}'] = session.get(f'itemValue{i}', '0')
     return generate_page(nameValueDict)
 
 @socketio.on('connect')
