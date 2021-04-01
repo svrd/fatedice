@@ -144,9 +144,10 @@ def generate_page(nameValueDict):
     for i in range(1, no_of_combinations + 1):
         page = page + \
             f'''
-            <label for="roll">Grund:</label><input type="number" size=2 min=0 id="base{i}" name="base{i}" value="{nameValueDict['baseValue' + str(i)]}">
-            <label for="roll">Färdighet:</label><input type="number" size=2 min=0 id="skill{i}" name="skill{i}" value="{nameValueDict['skillValue' + str(i)]}">
-            <label for="roll">Pryl:</label><input type="number" size=2 min=0 id="item{i}" name="item{i}" value="{nameValueDict['itemValue' + str(i)]}">
+            <label for="roll">Namn:</label><input type="text" size=8 min=0 id="tag{i}" name="tag{i}" value="{nameValueDict['tag' + str(i)]}">
+            <label for="roll">Grund:</label><input type="text" size=2 min=0 id="base{i}" name="base{i}" value="{nameValueDict['baseValue' + str(i)]}">
+            <label for="roll">Färdighet:</label><input type="text" size=2 min=0 id="skill{i}" name="skill{i}" value="{nameValueDict['skillValue' + str(i)]}">
+            <label for="roll">Pryl:</label><input type="text" size=2 min=0 id="item{i}" name="item{i}" value="{nameValueDict['itemValue' + str(i)]}">
             <label for="roll">Artefakt:</label><input type="text" size=2 id="artifact{i}" name="artifact{i}" value="{nameValueDict['artifactValue' + str(i)]}">
             <input type="submit" name="pool_button{i}" value="Slå"><br>
             '''
@@ -166,14 +167,21 @@ def generate_page(nameValueDict):
             if line != "":
                 if line[0:4].find("POOL") == 0:
                     line = line[4:]
-                    idx = line.find("slog")+5
+                    idx = line.find(":")+2
                     pool_roll = line[idx:]
+                    tag = ""
+                    tag_idx = line[4:].find("slog för")
+                    if tag_idx != -1:
+                        tag_idx += 9
+                        tag = line[tag_idx:idx]
+                        print(f"tag: {tag}")
                     line = line[0:idx]
                     print(pool_roll)
                     print(line)
                     formatted_pool_roll = format_pool_roll(pool_roll)
                     line += formatted_pool_roll
-                    push_button = f'''<input type="hidden" name="pool_roll" id="pool_roll" value="{pool_roll}">
+                    push_button = f'''<input type="hidden" name="pool_tag" id="pool_tag" value="{tag}">
+                                      <input type="hidden" name="pool_roll" id="pool_roll" value="{pool_roll}">
                                       <input type="submit" name="push_button" value="Pressa">
                                       <input type="submit" name="no_push_button" value="Pressa inte">'''
                     print(line)
@@ -194,8 +202,8 @@ def generate_page(nameValueDict):
                     break
                 if line[0:4].find("POOL") == 0:
                     line = line[4:]
-                    pool_roll = line[line.find("slog"):]
-                    line = line[0:line.find("slog")+5]
+                    pool_roll = line[line.find(":"):]
+                    line = line[0:line.find(":")+2]
                     pool_roll = format_pool_roll(pool_roll)
                     line += pool_roll
                 lines = line + "<br>" + lines
@@ -340,18 +348,26 @@ def cmd():
         socketio.emit('reload')
 
     elif request.args.get('no_push_button') is not None:
+        tag = request.args.get("pool_tag", "")
         pool_roll = request.args.get("pool_roll", None)
         with open("rolls.txt", "a+") as f:
-            f.write(f"POOL {name} slog {pool_roll}")
+            tag_text = ":"
+            if tag != "":
+                tag_text=f" för {tag}:"
+            f.write(f"POOL {name} slog{tag_text} {pool_roll}")
         with open("pool.txt", "w+") as f:
             f.write("")
         socketio.emit('reload')
 
     elif request.args.get('push_button') is not None:
+        tag = request.args.get("pool_tag", "")
         pool_roll = request.args.get("pool_roll", None)
         pool_roll = push_roll(pool_roll)
         with open("rolls.txt", "a+") as f:
-            f.write(f"POOL {name} pressade och slog {pool_roll}\n")
+            tag_text = ":"
+            if tag != "":
+                tag_text=f" för {tag}:"
+            f.write(f"POOL {name} pressade och slog{tag_text} {pool_roll}\n")
         with open("pool.txt", "w+") as f:
             f.write("")
         socketio.emit('reload')
@@ -382,11 +398,13 @@ def cmd():
         socketio.emit('reload')
 
     no_of_combinations = int(session.get('no_of_combinations', '3'))
+    tag = ""
     base = ""
     skill = ""
     item = ""
     for i in range(1, no_of_combinations+1):
         if request.args.get(f'pool_button{i}') is not None:
+            tag = request.args.get(f"tag{i}", None)
             base = request.args.get(f"base{i}", None)
             skill = request.args.get(f"skill{i}", None)
             item = request.args.get(f"item{i}", None)
@@ -394,12 +412,14 @@ def cmd():
             break
 
     if base != "" and skill != "" and item != "":
+        print(f"tag: {tag}")
         print(f"base: {base}")
         print(f"skill: {skill}")
         print(f"item: {item}")
         print(f"artifact: {artifact}")
         if base.isnumeric() and skill.isnumeric() and item.isnumeric():
             for i in range(1, no_of_combinations+1):
+                session[f'tag{i}'] = request.args.get(f"tag{i}", None)
                 session[f'baseValue{i}'] = request.args.get(f"base{i}", None)
                 session[f'skillValue{i}'] = request.args.get(f"skill{i}", None)
                 session[f'itemValue{i}'] = request.args.get(f"item{i}", None)
@@ -424,7 +444,10 @@ def cmd():
                 except IOError:
                     print("No pool file")
                 with open("pool.txt", "w+") as f:
-                    f.write(f"POOL {name} slog {result}\n")
+                    tag_text = ":"
+                    if tag != "":
+                        tag_text=f" för {tag}:"
+                    f.write(f"POOL {name} slog{tag_text} {result}\n")
                 socketio.emit('reload')
         print("not a numeric value")
 
@@ -447,7 +470,8 @@ def index():
     nameValueDict['combination'] = session.get('combination', '')
     nameValueDict['no_of_combinations'] = session.get('no_of_combinations', '3')
     no_of_combinations = int(nameValueDict['no_of_combinations'])
-    for i in range(1, no_of_combinations + 1):    
+    for i in range(1, no_of_combinations + 1):
+        nameValueDict[f'tag{i}'] = session.get(f'tag{i}', '')
         nameValueDict[f'baseValue{i}'] = session.get(f'baseValue{i}', '0')
         nameValueDict[f'skillValue{i}'] = session.get(f'skillValue{i}', '0')
         nameValueDict[f'itemValue{i}'] = session.get(f'itemValue{i}', '0')
