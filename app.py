@@ -65,15 +65,65 @@ def format_pool_roll(pool_roll):
 def generate_page(nameValueDict):
     page = \
         '''
+        <html>
+        <head>
+        </head>
+
+        <style>
+            /* Style the tab */
+            .tab {
+                overflow: hidden;
+                border: 1px solid #ccc;
+                background-color: #f1f1f1;
+            }
+            
+            /* Style the buttons that are used to open the tab content */
+            .tab button {
+                background-color: inherit;
+                float: left;
+                border: none;
+                outline: none;
+                cursor: pointer;
+                padding: 14px 16px;
+                transition: 0.3s;
+            }
+            
+            /* Change background color of buttons on hover */
+            .tab button:hover {
+                background-color: #ddd;
+            }
+            
+            /* Create an active/current tablink class */
+            .tab button.active {
+                background-color: #ccc;
+            }
+            
+            /* Style the tab content */
+            .tabcontent {
+                display: none;
+                padding: 6px 12px;
+                border: 1px solid #ccc;
+                border-top: none;
+                animation: fadeEffect 1s; /* Fading effect takes 1 second */
+            }
+
+            /* Go from zero to full opacity */
+            @keyframes fadeEffect {
+            from {opacity: 0;}
+            to {opacity: 1;}
+            }            
+        </style>
+
         <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/2.2.0/socket.io.js"></script>
         <script type="text/javascript" charset="utf-8">
+
             var socket = io();
             socket.on('connect', function() {
                 socket.emit('message', 'connected!');
             });
             socket.on('reload', function() { location.reload();})
         </script>        
-        '''      
+        '''
     read_stats()  
     d6_statistics = get_stats()
 
@@ -84,7 +134,55 @@ def generate_page(nameValueDict):
         combination = f'''<label for="combination">Kombination: {nameValueDict['combination']}</label><input type="submit" name="show_button" value="Visa"><br>'''
 
     page = page + \
+        '''
+        <body>
+        <div class="tab">
+        <button class="tablinks" onclick="openTab(event, 'Dice')" id="Dice_tab">Ödestärningar</button>
+        <button class="tablinks" onclick="openTab(event, 'Sheet')" id="Sheet_tab">Rollformulär</button>
+        </div>
+
+        <script>
+            function openTab(evt, tabName) {
+                // Declare all variables
+                var i, tabcontent, tablinks;
+
+                // Get all elements with class="tabcontent" and hide them
+                tabcontent = document.getElementsByClassName("tabcontent");
+                for (i = 0; i < tabcontent.length; i++) {
+                    tabcontent[i].style.display = "none";
+                }
+
+                // Get all elements with class="tablinks" and remove the class "active"
+                tablinks = document.getElementsByClassName("tablinks");
+                for (i = 0; i < tablinks.length; i++) {
+                    tablinks[i].className = tablinks[i].className.replace(" active", "");
+                }
+
+                // Show the current tab, and add an "active" class to the button that opened the tab
+                document.getElementById(tabName).style.display = "block";
+                evt.currentTarget.className += " active";
+
+                sessionStorage.setItem("activeTab", tabName);
+            }
+
+            window.onload = function() {
+
+                activeTab = sessionStorage.getItem("activeTab");
+                if (activeTab == "")
+                {
+                    activeTab = "Sheet"
+                }
+
+                activeTab += "_tab"
+
+                document.getElementById(activeTab).click();
+            }
+        </script>
+        '''
+
+    page = page + \
         f'''
+        <div id="Dice" class="tabcontent">
         <h1>Ödestärningar</h1>
         <form action="/cmd/" method="get">
         <input type="submit" name="reload_button" value="Ladda om"><br>
@@ -188,7 +286,13 @@ def generate_page(nameValueDict):
                     page += line + push_button
     except IOError:
         print("No pool file")
-    page += "</td></tr></table>"
+    page += "</td></tr></table></div>"
+
+    page += '''
+            <div id="Sheet" class="tabcontent">
+            <h1>Rollformulär</h1>
+            </div>
+            '''
 
     page += "<h3>Tärningsslag</h3>"
     lines = ""
@@ -211,6 +315,8 @@ def generate_page(nameValueDict):
         print("No rolls file")
 
     page = page + lines + "</form>"
+
+    page += "</body></html>"
 
     return page
 
@@ -402,6 +508,14 @@ def cmd():
     base = ""
     skill = ""
     item = ""
+
+    if request.args.get(f'pool_button') is not None:
+        tag = request.args.get(f"tag", None)
+        base = request.args.get(f"base", None)
+        skill = request.args.get(f"skill", None)
+        item = request.args.get(f"item", None)
+        artifact = request.args.get(f"artifact", None)
+
     for i in range(1, no_of_combinations+1):
         if request.args.get(f'pool_button{i}') is not None:
             tag = request.args.get(f"tag{i}", None)
