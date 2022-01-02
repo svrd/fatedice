@@ -230,6 +230,7 @@ def generate_page(nameValueDict):
         <input type="submit" name="random_event_button" value="Slumpmässig händelse">
         <input type="submit" name="meaning_table_action_button" value="Handling">
         <input type="submit" name="meaning_table_description_button" value="Beskrivning"><br>
+        <input type="submit" name="slp_characteristics_button" value="Kännetecken"><input type="submit" name="slp_behavior_button" value="Beteende"><br>
         <label for="random_table">Slumpa:</label><input type="text" id="random_table" name="random_table" value="">
         <input type="submit" name="random_table_button" value="Slumpa"><br>
         <!--<h2>Mutant</h2>-->
@@ -428,7 +429,19 @@ def cmd():
             meaning_description1 = random_list(["meaning_descriptor1"])[0]
             meaning_description2 = random_list(["meaning_descriptor2"])[0]
             f.write(f"{meaning_description1} {meaning_description2}\n")
-        socketio.emit('reload')        
+        socketio.emit('reload')
+
+    elif request.args.get('slp_characteristics_button') is not None:
+        with open("rolls.txt", "a+") as f:
+            characteristics = random_list(["kannetecken"])[0]
+            f.write(f"{characteristics}\n")
+        socketio.emit('reload')
+
+    elif request.args.get('slp_behavior_button') is not None:
+        with open("rolls.txt", "a+") as f:
+            behavior = random_list(["beteende"])[0]
+            f.write(f"{behavior}\n")
+        socketio.emit('reload')
 
     elif request.args.get('roll_button') is not None and roll is not None and roll != "":
         session['roll'] = roll
