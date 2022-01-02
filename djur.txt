@@ -1,0 +1,10 @@
+Hund
+Katt
+Svin
+Gnagare
+Björn
+Apa
+Hardjur
+Mårddjur
+Reptil
+Fågel
